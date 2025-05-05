@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BPS Isochrone Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: sans-serif;
+      font-size: 1rem;
+    }
+
+    #sidebar {
+      flex: 0 0 30%;
+      padding: 1rem;
+      background: #f4f4f4;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      flex: 1 1 70%;
+      height: 100%;
+      position: relative;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+      color: #333;
+    }
+
+    .sidebar-logo {
+      height: 2.5rem;
+      object-fit: contain;
+    }
+
+    #sidebar h5 {
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    #actions > div {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    select, button {
+      padding: 0.625rem;
+      font-size: 0.875rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      background: #fff;
+    }
+
+    button {
+      background-color: #2d72d9;
+      color: white;
+      border: none;
+      margin-top: 0.75rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1b56a8;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.75rem;
+      margin: 0.5rem 0;
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #444;
+    }
+
+    .switch {
+      position: relative;
+      width: 2.75rem;
+      height: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 1.125rem;
+      width: 1.125rem;
+      left: 0.25rem;
+      bottom: 0.25rem;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.4s;
+    }
+
+    input:checked + .slider {
+      background-color: #e74c3c;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(1.25rem);
+    }
+
+    #legend {
+      position: absolute;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      background: rgba(255,255,255,0.9);
+      padding: 0.625rem 0.75rem;
+      font-size: 0.8125rem;
+      color: #333;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      z-index: 1;
+    }
+
+    #legend h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.875rem;
+      font-weight: bold;
+    }
+
+    .legend-color {
+      display: inline-block;
+      width: 0.875rem;
+      height: 0.875rem;
+      margin-right: 0.375rem;
+      vertical-align: middle;
+      border: 1px solid #555;
+    }
+
+    #map-logo {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      height: 2.5rem;
+      z-index: 10;
+      padding: 0.25rem;
+      border-radius: 4px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+    }
+    #toggle-students {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10;
+}
+
+#students-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #1d068e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#all-schools {
+  position: absolute;
+  bottom: 20px;
+  left: 170px;
+  z-index: 10;
+}
+
+#allschools-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #d36c18;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#reset-view {
+  position: absolute;
+  bottom: 65px;
+  left: 20px;
+  z-index: 10;
+}
+#reset-view-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#students-btn:hover {
+  background-color: #666;
+}
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      #sidebar {
+        flex: none;
+        width: 100%;
+        height: auto;
+      }
+      
+      #map {
+        flex: none;
+        width: 100%;
+        height: 60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2>BPS Alt Ed Planning Tool</h2>
+      <img src="459-4594801_boston-public-schools-boston-public-schools-transparent-logo.png.jpeg" alt="BPSLogo" class="sidebar-logo" />
+    </div>
+    <h5>If you want to evaluate removing a program location, select the school and move the toggle to close.</h5>
+    <div id="actions"></div>
+    <h5>If you want to test the impact of adding a new location, click the button below then click a point on the map where you want to add a new program</h5>
+    <button id="add-location-btn">Add New Location</button>
+    <h5>To see the travel distance impact of closing and/or adding sites, hit run below.</h5>
+    <button id="run-btn">Run</button>
+    <h5>See the impact of scenarios below.</h5>
+    <div style="margin-top: 20px;">
+      <label><input type="radio" name="chart-toggle" value="capacity" checked> Capacity Chart</label>
+      <label style="margin-left: 10px;"><input type="radio" name="chart-toggle" value="covered"> Covered Area Chart</label>
+      <label style="margin-left: 10px;"><input type="radio" name="chart-toggle" value="students"> Student Coverage Chart</label>
+
+    </div>
+    <canvas id="capacityChart" width="400" height="200" style="margin-top: 10px;"></canvas>
+    
+  </div>
+  <div id="map">
+    <img id="map-logo" src="perkins-eastman-logo web.png" alt="Logo" />
+    <div id="toggle-students">
+      <button id="students-btn">Show Students</button>
+    </div>
+     <!-- ✅ Reset View Button -->
+     <div id="reset-view">
+     <button id="reset-view-btn">Reset View</button>
+    </div>
+    <div id="all-schools">
+    <button id="allschools-btn">Show All Schools</button>
+  </div>
+
+    
+    <div id="legend">
+      <h4>Legend</h4>
+      <div><span class="legend-color" style="background:#e74c3c;"></span> Alt Ed School</div>
+      <div><span class="legend-color" style="background:#bbbbbb;"></span> Removed Site</div>
+      <div><span class="legend-color" style="background:#2ecc71;"></span> New School</div>
+      <div><span class="legend-color" style="background:#2ecc71; opacity: 0.4;"></span> 1mi</div>
+      <div><span class="legend-color" style="background:#f1c40f; opacity: 0.4;"></span> 3mi</div>
+      <div><span class="legend-color" style="background:#c0392b; opacity: 0.4;"></span> 5mi</div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
