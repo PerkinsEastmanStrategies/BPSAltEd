@@ -194,6 +194,30 @@ map.addLayer({
     visibility: 'none' // initially hidden
   }
 });
+// ✅ Populate search dropdown from SCH_LABEL field
+const schoolList = document.getElementById('school-list');
+allSchoolsData.features.forEach(f => {
+  const label = f.properties.SCH_LABEL;
+  if (label) {
+    const option = document.createElement('option');
+    option.value = label;
+    schoolList.appendChild(option);
+  }
+});
+
+// ✅ Handle search selection
+document.getElementById('school-search').addEventListener('change', function () {
+  const selectedName = this.value;
+  const match = allSchoolsData.features.find(f => f.properties.SCH_LABEL === selectedName);
+  if (match) {
+    const coords = match.geometry.coordinates;
+    map.flyTo({ center: coords, zoom: 15 });
+    new mapboxgl.Popup()
+      .setLngLat(coords)
+      .setHTML(`<strong>${match.properties.SCH_LABEL}</strong>`)
+      .addTo(map);
+  }
+});
 
 // Add basic popup
 map.on('click', 'all-schools-layer', (e) => {
@@ -447,7 +471,7 @@ function updateChart() {
     datasets: [{
       label: 'Student Count',
       data: [enrollmentTotal, totalCapacity, openCapacity],
-      backgroundColor: ['#2ecc71', '#f1c40f', '#c0392b']
+      backgroundColor: ['#1e90ff', '#ba55d3', '#ff6347']
     }]
   };
 

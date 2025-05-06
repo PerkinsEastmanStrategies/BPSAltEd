@@ -144,6 +144,22 @@
     input:checked + .slider:before {
       transform: translateX(1.25rem);
     }
+    #school-search-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+#school-search {
+  padding: 6px;
+  font-size: 14px;
+  width: 200px;
+}
 
     #legend {
       position: absolute;
@@ -289,7 +305,11 @@
     <div id="all-schools">
     <button id="allschools-btn">Show All Schools</button>
   </div>
-
+  <div id="school-search-container">
+    <input type="text" id="school-search" placeholder="Search for a school..." list="school-list" />
+    <datalist id="school-list"></datalist>
+  </div>
+  
     
     <div id="legend">
       <h4>Legend</h4>
