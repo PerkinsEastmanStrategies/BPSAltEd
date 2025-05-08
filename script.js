@@ -44,7 +44,9 @@ map.on('load', async () => {
       'line-width': 1.5
     }
   });
-// Fit to boundary
+
+
+  // Fit to boundary
 const bbox = turf.bbox(boundary);
 map.fitBounds(bbox, { padding: 40 });
 
@@ -68,6 +70,7 @@ document.getElementById('reset-view-btn').onclick = () => {
       'circle-stroke-color': '#c0392b',
       'circle-stroke-width': 2
     }
+    
   });
 // ✅ Add this popup logic after the schools-layer is added
 map.on('click', 'schools-layer', (e) => {
@@ -100,7 +103,10 @@ document.querySelectorAll('.mapboxgl-popup').forEach(p => p.remove());
     .setHTML(popupHTML)
     .addTo(map);
 
-    
+   // Load All Schools for Relocate Dropdown
+
+
+ 
 });
 
   // Layer for added locations
@@ -174,6 +180,13 @@ document.querySelectorAll('.mapboxgl-popup').forEach(p => p.remove());
 // Load All Schools GeoJSON
 const allSchoolsRes = await fetch('BPS_AllSchools.geojson');
 const allSchoolsData = await allSchoolsRes.json();
+allSchools = allSchoolsData.features; 
+
+// Load BPS_AltSchools.geojson for the "Select School" dropdown
+const altSchoolRes = await fetch('BPS_AltSchools.geojson');
+const altSchoolData = await altSchoolRes.json();
+allAltSchools = altSchoolData.features;
+
 
 map.addSource('all-schools', {
   type: 'geojson',
@@ -222,16 +235,29 @@ document.getElementById('school-search').addEventListener('change', function () 
 // Add basic popup
 map.on('click', 'all-schools-layer', (e) => {
   const props = e.features[0].properties;
+
   const popupHTML = `
-    <div style="font-family: sans-serif; font-size: 14px;">
-      <strong>${props.SCH_NAME|| 'School'}</strong>
+    <div style="border: 1px solid #ccc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-family: sans-serif; min-width: 240px;">
+      <div style="background-color: #34495e; color: white; padding: 10px; font-size: 16px; font-weight: bold;">
+        ${props['SCH_NAME'] || 'School'}
+      </div>
+      <div style="padding: 10px; background-color: #fff;">
+        <div><strong>Type:</strong> ${props['SCH_TYPE'] || 'N/A'}</div>
+        <div><strong>Experience Score:</strong> ${props['Building Experience Score'] || 'N/A'}</div>
+        <div><strong>Enrollment:</strong> ${props['Enrollment'] || 'N/A'}</div>
+        <div><strong>Capacity:</strong> ${props['Current Capacity'] || 'N/A'}</div>
+        <div><strong>Utilization %:</strong> ${props['Utilization %'] || 'N/A'}</div>
+        <div><strong>Model Space:</strong> ${props['Model Space Summary'] || 'N/A'}</div>
+      </div>
     </div>
   `;
+
   new mapboxgl.Popup()
     .setLngLat(e.lngLat)
     .setHTML(popupHTML)
     .addTo(map);
 });
+
 
 map.on('mouseenter', 'all-schools-layer', () => map.getCanvas().style.cursor = 'pointer');
 map.on('mouseleave', 'all-schools-layer', () => map.getCanvas().style.cursor = '');
@@ -249,66 +275,92 @@ document.getElementById('allschools-btn').onclick = () => {
 
 function populateActionPanel() {
   const actionsDiv = document.getElementById('actions');
-  actionsDiv.innerHTML = '';
+  actionsDiv.innerHTML = ''; // Clear existing content
 
   for (let i = 0; i < 4; i++) {
     const row = document.createElement('div');
 
     // School dropdown
-    const selectSchool = document.createElement('select');
-    selectSchool.className = 'school-select';
-    selectSchool.innerHTML = '<option value="">-- Select School --</option>';
-    allSchools.forEach(f => {
-      const name = f.properties.School || f.properties.school_name || f.id;
-      selectSchool.innerHTML += `<option value="${name}">${name}</option>`;
+   // "Select School" dropdown populated from BPS_AltSchools.geojson
+const selectSchool = document.createElement('select');
+selectSchool.className = 'school-select';
+selectSchool.innerHTML = '<option value="">-- Select School --</option>';
+
+allAltSchools.forEach(f => {
+  const name = f.properties.School || f.properties.school_name || f.id; // Use SCH_LABEL
+  selectSchool.innerHTML += `<option value="${name}">${name}</option>`;
+});
+
+
+    // Toggle row for action (Maintain, Close, Relocate)
+    const toggleRow = document.createElement('div');
+    toggleRow.className = 'toggle-row';
+    toggleRow.innerHTML = `
+      <label style="margin-left: 0;">
+        <input type="radio" name="action-${i}" value="maintain" checked> Maintain
+      </label>
+      <label style="margin-left: 8px;">
+        <input type="radio" name="action-${i}" value="close"> Close
+      </label>
+      <label style="margin-left: 8px;">
+        <input type="radio" name="action-${i}" value="relocate"> Relocate
+      </label>
+      <select class="relocate-select" data-index="${i}" style="display:none; margin-left: 8px;">
+        <option value="">-- Select New Site --</option>
+      </select>
+    `;
+
+    // Handle "Relocate" radio button selection
+    toggleRow.querySelectorAll('input[name="action-' + i + '"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const relocateSelect = toggleRow.querySelector('.relocate-select');
+        if (radio.value === 'relocate' && radio.checked) {
+          relocateSelect.style.display = 'inline-block';  // Show dropdown when 'Relocate' is selected
+          
+          // Populate the dropdown with schools from BPS_AllSchools.geojson
+          relocateSelect.innerHTML = '<option value="">-- Select New Site --</option>';  // Clear previous options
+          allSchools.forEach(f => {
+            const label = f.properties.SCH_LABEL;  // Use SCH_LABEL to populate the dropdown
+            if (label) {
+              const option = document.createElement('option');
+              option.value = label;  // Set the value to SCH_LABEL
+              option.textContent = label;  // Display SCH_LABEL in the dropdown
+              relocateSelect.appendChild(option);
+            }
+          });
+        } else {
+          relocateSelect.style.display = 'none';  // Hide dropdown when other options are selected
+        }
+      });
     });
 
-    // Toggle switch with left/right labels
-    const toggleRow = document.createElement('div');
-toggleRow.className = 'toggle-row';
-
-toggleRow.innerHTML = `
-  <span class="toggle-label">Maintain</span>
-  <label class="switch">
-    <input type="checkbox" class="action-toggle" data-index="${i}">
-    <span class="slider"></span>
-  </label>
-  <span class="toggle-label">Close</span>
-`;
-
-
-
-// After you define toggleRow.innerHTML...
-const toggle = toggleRow.querySelector('.action-toggle');
-toggle.addEventListener('change', updateChart);
-
-row.appendChild(selectSchool);
-row.appendChild(toggleRow);
-
-    actionsDiv.appendChild(row);
+    row.appendChild(selectSchool);  // Add the school dropdown to the row
+    row.appendChild(toggleRow);     // Add the toggle actions row to the row
+    actionsDiv.appendChild(row);    // Add the row to the actions div
   }
-}
 
-document.querySelectorAll('input[name="chart-toggle"]').forEach(input => {
-  input.addEventListener('change', (e) => {
-    const selectedChart = e.target.value;
+  // Handle the chart toggle change event
+  document.querySelectorAll('input[name="chart-toggle"]').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const selectedChart = e.target.value;
 
-    if (chart) {
-      chart.destroy();
-      chart = null;
-    }
+      if (chart) {
+        chart.destroy();
+        chart = null;
+      }
 
-    if (selectedChart === 'capacity') {
-      updateChart();
-    } else if (selectedChart === 'covered') {
-      updateCoveredChart(trimmedIsochrones, boundary);
-    } else if (selectedChart === 'students') {
-      updateStudentChart(trimmedIsochrones);
-    }
+      if (selectedChart === 'capacity') {
+        updateChart();
+      } else if (selectedChart === 'covered') {
+        updateCoveredChart(trimmedIsochrones, boundary);
+      } else if (selectedChart === 'students') {
+        updateStudentChart(trimmedIsochrones);
+      }
+    });
   });
-
-
-});
+}
+  
+// Close the populateActionPanel function
 
 
   
@@ -339,15 +391,16 @@ document.getElementById('run-btn').onclick = async () => {
 
   for (let i = 0; i < schoolSelects.length; i++) {
     const school = schoolSelects[i].value;
-    const toggle = document.querySelectorAll('.action-toggle')[i];
-if (school && toggle && toggle.checked) closedNames.add(school);
-
+    const action = document.querySelector(`input[name="action-${i}"]:checked`);
+    if (school && action && (action.value === 'close' || action.value === 'relocate')) {
+      closedNames.add(school);
+    }
   }
 
-  const closed = allSchools.filter(f =>
+  const closed = allAltSchools.filter(f =>
     closedNames.has(f.properties.School)
   );
-  const active = allSchools.filter(f =>
+  const active = allAltSchools.filter(f =>
     !closedNames.has(f.properties.School)
   );
 
