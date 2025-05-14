@@ -209,7 +209,7 @@
 #students-btn {
   padding: 8px 14px;
   font-size: 14px;
-  background-color: #1d068e;
+  background-color: #3b7dd8;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -226,7 +226,7 @@
 #allschools-btn {
   padding: 8px 14px;
   font-size: 14px;
-  background-color: #d36c18;
+  background-color: #3b7dd8;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -251,6 +251,48 @@
 #students-btn:hover {
   background-color: #666;
 }
+#toggle-transit {
+  position: absolute;
+  bottom: 20px;
+  left: 320px; /* Adjust the left value if it overlaps */
+  z-index: 10;
+}
+
+#transit-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #3b7dd8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#transit-btn:hover {
+  background-color: #004d99;
+}
+
+#toggle-isochrones {
+  position: absolute;
+  bottom: 20px;
+  left: 470px; /* Adjust this based on your layout */
+  z-index: 10;
+}
+
+#isochrones-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #3b7dd8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#isochrones-btn:hover {
+  background-color: #2a5ea7;
+}
+
 
     @media (max-width: 768px) {
       body {
@@ -310,6 +352,14 @@
     <div id="all-schools">
     <button id="allschools-btn">Show All Schools</button>
   </div>
+  <div id="toggle-transit">
+    <button id="transit-btn">Show Transit</button>
+  </div>
+  
+  <div id="toggle-isochrones">
+    <button id="isochrones-btn">Show Isochrones</button>
+  </div>
+  
   <div id="school-search-container">
     <input type="text" id="school-search" placeholder="Search for a school..." list="school-list" />
     <datalist id="school-list"></datalist>
@@ -318,7 +368,8 @@
     
     <div id="legend">
       <h4>Legend</h4>
-      <div><span class="legend-color" style="background:#e74c3c;"></span> Alt Ed School</div>
+      <div><span class="legend-color" style="background:#ffa500;"></span> Standalone Alt Ed School</div>
+      <div><span class="legend-color" style="background:#1f78b4;"></span> Shared Alt Ed School</div>
       <div><span class="legend-color" style="background:#bbbbbb;"></span> Removed Site</div>
       <div><span class="legend-color" style="background:#2ecc71;"></span> New School</div>
       <div><span class="legend-color" style="background:#2ecc71; opacity: 0.4;"></span> 1mi</div>
